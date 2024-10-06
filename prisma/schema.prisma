@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model YappinLike {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  yappin_id Int?
+  users     users    @relation(fields: [user_id], references: [id])
+  yappins   yappins? @relation(fields: [yappin_id], references: [id])
+
+  like_notifications like_notifications[]
+
+  @@unique([user_id, yappin_id])
+}
+
+model YappinComment {
+  id              Int         @id @default(autoincrement())
+  content         String      @db.Text
+  created_at      DateTime    @default(now())
+  user_id         Int
+  yappin_id       Int
+  users           users       @relation(fields: [user_id], references: [id])
+  yappin          yappins     @relation(fields: [yappin_id], references: [id])
+
+  comment_notifications              comment_notifications[]
+}
+
+
+model follows {
+  followerId                       Int
+  followingId                      Int
+  createdAt                        DateTime @default(now())
+  id                               Int      @id @default(autoincrement())
+  users_follows_followerIdTousers  users    @relation("follows_followerIdTousers", fields: [followerId], references: [id])
+  users_follows_followingIdTousers users    @relation("follows_followingIdTousers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
+
+model list_preference {
+  id   Int    @id @default(autoincrement())
+  name String
+}
+
+model like_notifications {
+  id              Int         @id @default(autoincrement())
+  detail          String
+  redirect        String?
+  created_at      DateTime     @default(now())
+  user_id         Int
+  yappin_like_id  Int
+  by_id           Int
+
+  byusers         users        @relation("by_user", fields: [by_id], references: [id])
+  users           users        @relation(fields: [user_id], references: [id])
+  yappin_like     YappinLike   @relation(fields: [yappin_like_id], references: [id])
+}
+
+model comment_notifications {
+  id              Int         @id @default(autoincrement())
+  detail          String
+  redirect        String?
+  created_at      DateTime     @default(now())
+  user_id         Int
+  yappin_comment_id  Int
+  by_id           Int
+
+  byusers         users           @relation("by_user_comment", fields: [by_id], references: [id])
+  users           users           @relation(fields: [user_id], references: [id])
+  yappin_comment_like     YappinComment   @relation(fields: [yappin_comment_id], references: [id])
+}
+
+model preference_yappin {
+  id                   Int     @id @default(autoincrement())
+  preference_tag_one   String?
+  preference_tag_two   String?
+  preference_tag_three String?
+  preference_tag_four  String?
+  user_id              Int     @unique
+  total_engage_four    Int?
+  total_engage_one     Int?
+  total_engage_three   Int?
+  total_engage_two     Int?
+  users                users   @relation(fields: [user_id], references: [id])
+}
+
+model reminders {
+  id            Int       @id @default(autoincrement())
+  content       String
+  is_finished   Boolean   @default(false)
+  started_date  DateTime
+  finished_date DateTime?
+  deadline_date DateTime
+  created_date  DateTime
+  user_id       Int
+  is_public     Boolean
+  location      String
+  title         String
+  users         users     @relation(fields: [user_id], references: [id])
+}
+
+model tags {
+  id   Int @id @default(autoincrement())
+  name Int @unique
+}
+
+model users {
+  id                                 Int                @id @default(autoincrement())
+  name                               String?            @db.VarChar(100)
+  username                           String             @unique @db.VarChar(50)
+  email                              String             @unique @db.VarChar(50)
+  password                           String             @db.VarChar(120)
+  country                            String?            @db.VarChar(50)
+  city                               String?            @db.VarChar(50)
+  bio                                String?            @db.VarChar(255)
+  avatar_link                        String?
+  googleId                           String?
+  created_at                         DateTime           @default(now())
+  updated_at                         DateTime
+  role                               ROLE               @default(USER)
+  YappinLike                         YappinLike[]
+  YappinComment                       YappinComment[]
+  follows_follows_followerIdTousers  follows[]          @relation("follows_followerIdTousers")
+  follows_follows_followingIdTousers follows[]          @relation("follows_followingIdTousers")
+  like_notifications                 like_notifications[]
+  by_notifications                   like_notifications[] @relation("by_user")
+  comment_notifications              comment_notifications[]
+  by_notifications_comment           comment_notifications[] @relation("by_user_comment")
+  preference_yappin                  preference_yappin?
+  reminders                          reminders[]
+  yappins                            yappins[]
+}
+
+
+model yappin_image {
+  id         Int       @id @default(autoincrement())
+  image_link String
+  yappin_id  Int?
+  type       EXTENSION
+  yappins    yappins?  @relation(fields: [yappin_id], references: [id])
+}
+
+model yappins {
+  id             Int            @id @default(autoincrement())
+  caption        String
+  total_likes    Int?           @default(0)
+  created_at     DateTime
+  tag_one_id     Int?
+  tag_two_id     Int?
+  tag_three_id   Int?
+  tag_four_id    Int?
+  user_id        Int
+  tag_four_name  String?
+  tag_one_name   String?
+  tag_three_name String?
+  tag_two_name   String?
+  is_public      Boolean        @default(false)
+  total_comments Int?
+  location       String?
+  YappinLike     YappinLike[]
+  YappinComment     YappinComment[]
+  yappin_image   yappin_image[]
+  users          users          @relation(fields: [user_id], references: [id])
+}
+
+enum EXTENSION {
+  VIDEO
+  IMAGE
+}
+
+enum ROLE {
+  ADMIN
+  USER
+}
