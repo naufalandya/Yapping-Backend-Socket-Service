@@ -8,6 +8,8 @@ const path = require("path");
 const cors = require("cors");
 const { handleError } = require("./middlewares/error.middleware");
 const v1 = require("./api/v1.api");
+const { handleYappinStats } = require("./controllers/asistant.controller");
+const { verifyToken } = require("./middlewares/auth.middleware");
 
 require("dotenv").config();
 
@@ -38,6 +40,7 @@ const app = express()
   .use(express.urlencoded({ extended: true }))
   .use(bodyparser.urlencoded({ extended: true }))
   .use("/api", v1)
+  .get("/chat",verifyToken, handleYappinStats)
   //500
   .use((err, req, res, next) => {
     handleError(err, res)

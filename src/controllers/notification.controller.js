@@ -1,8 +1,5 @@
 const prisma = require("../libs/prisma.lib");
 
-/**
- * Get notification history for a user
- */
 const getNotificationHistory = async (req, res) => {
   try {
     const userId = Number(req.user.id);

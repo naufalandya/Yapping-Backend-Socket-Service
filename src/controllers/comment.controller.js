@@ -3,6 +3,64 @@
 const prisma = require("../libs/prisma.lib");
 const { ErrorWithStatusCode } = require("../middlewares/error.middleware");
 
+const getCommentsController = async (req, res) => {
+    try {
+        const { yappin_id } = req.params;
+
+        if (!yappin_id) {
+            return res.status(400).json({
+                status: false,
+                message: 'yappin_id is required!',
+                data: null
+            });
+        }
+
+        // Cek apakah yappin dengan ID yang diberikan ada
+        const yappin = await prisma.yappins.findUnique({
+            where: { id: Number(yappin_id) }
+        });
+
+        if (!yappin) {
+            return res.status(404).json({
+                status: false,
+                message: 'Yappin not found!',
+                data: null
+            });
+        }
+
+        // Ambil semua komentar berdasarkan yappin_id
+        const comments = await prisma.yappinComment.findMany({
+            where: { yappin_id: Number(yappin_id) },
+            include: {
+                users: { // Sertakan data user yang membuat komentar
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar_link: true // Jika ada profile picture atau avatar
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc' // Urutkan dari komentar terbaru
+            }
+        });
+
+        return res.status(200).json({
+            status: true,
+            message: 'Comments retrieved successfully!',
+            data: comments
+        });
+
+    } catch (err) {
+        console.error('Error in getCommentsController:', err);
+        return res.status(500).json({
+            status: false,
+            message: 'Internal Server Error',
+            data: null
+        });
+    }
+};
+
 const commentController = async (req, res) => {
     try {
         const { yappin_id, content } = req.body;
@@ -46,15 +104,14 @@ const commentController = async (req, res) => {
             if (user_id !== yappin.user_id) {
                 await prisma.comment_notifications.create({
                     data: {
-                        user_id: yappin.user_id, // User pemilik Yappin
+                        user_id: yappin.user_id, 
                         detail: message,
                         created_at: new Date(),
-                        yappin_comment_id: newComment.id, // ID dari komentar yang baru
-                        by_id: user_id // User yang memberi komentar
+                        yappin_comment_id: newComment.id, 
+                        by_id: user_id 
                     }
                 });
 
-                // Emit notifikasi melalui Socket.IO
                 io.emit(`user-${yappin.user_id}`, { 
                     username: user.username, 
                     message: message,
@@ -63,7 +120,6 @@ const commentController = async (req, res) => {
                 });
             }
 
-            // Kembalikan respons berhasil
             return res.status(201).json({
                 status: true,
                 message: 'Comment added successfully!',
@@ -135,6 +191,7 @@ const deleteCommentController = async (req, res) => {
 };
 
 module.exports = {
+    getCommentsController,
     commentController,
     deleteCommentController
 };
