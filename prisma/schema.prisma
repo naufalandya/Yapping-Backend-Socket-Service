@@ -9,29 +9,26 @@ datasource db {
 }
 
 model YappinLike {
-  id        Int      @id @default(autoincrement())
-  user_id   Int
-  yappin_id Int?
-  users     users    @relation(fields: [user_id], references: [id])
-  yappins   yappins? @relation(fields: [yappin_id], references: [id])
-
+  id                 Int                  @id @default(autoincrement())
+  user_id            Int
+  yappin_id          Int?
+  users              users                @relation(fields: [user_id], references: [id])
+  yappins            yappins?             @relation(fields: [yappin_id], references: [id])
   like_notifications like_notifications[]
 
   @@unique([user_id, yappin_id])
 }
 
 model YappinComment {
-  id              Int         @id @default(autoincrement())
-  content         String      @db.Text
-  created_at      DateTime    @default(now())
-  user_id         Int
-  yappin_id       Int
-  users           users       @relation(fields: [user_id], references: [id])
-  yappin          yappins     @relation(fields: [yappin_id], references: [id])
-
-  comment_notifications              comment_notifications[]
+  id                    Int                     @id @default(autoincrement())
+  content               String
+  created_at            DateTime                @default(now())
+  user_id               Int
+  yappin_id             Int
+  users                 users                   @relation(fields: [user_id], references: [id])
+  yappin                yappins                 @relation(fields: [yappin_id], references: [id])
+  comment_notifications comment_notifications[]
 }
-
 
 model follows {
   followerId                       Int
@@ -50,31 +47,29 @@ model list_preference {
 }
 
 model like_notifications {
-  id              Int         @id @default(autoincrement())
-  detail          String
-  redirect        String?
-  created_at      DateTime     @default(now())
-  user_id         Int
-  yappin_like_id  Int
-  by_id           Int
-
-  byusers         users        @relation("by_user", fields: [by_id], references: [id])
-  users           users        @relation(fields: [user_id], references: [id])
-  yappin_like     YappinLike   @relation(fields: [yappin_like_id], references: [id])
+  id             Int        @id @default(autoincrement())
+  detail         String
+  redirect       String?
+  created_at     DateTime   @default(now())
+  user_id        Int
+  yappin_like_id Int
+  by_id          Int
+  byusers        users      @relation("by_user", fields: [by_id], references: [id])
+  users          users      @relation(fields: [user_id], references: [id])
+  yappin_like    YappinLike @relation(fields: [yappin_like_id], references: [id])
 }
 
 model comment_notifications {
-  id              Int         @id @default(autoincrement())
-  detail          String
-  redirect        String?
-  created_at      DateTime     @default(now())
-  user_id         Int
-  yappin_comment_id  Int
-  by_id           Int
-
-  byusers         users           @relation("by_user_comment", fields: [by_id], references: [id])
-  users           users           @relation(fields: [user_id], references: [id])
-  yappin_comment_like     YappinComment   @relation(fields: [yappin_comment_id], references: [id])
+  id                  Int           @id @default(autoincrement())
+  detail              String
+  redirect            String?
+  created_at          DateTime      @default(now())
+  user_id             Int
+  yappin_comment_id   Int
+  by_id               Int
+  byusers             users         @relation("by_user_comment", fields: [by_id], references: [id])
+  users               users         @relation(fields: [user_id], references: [id])
+  yappin_comment_like YappinComment @relation(fields: [yappin_comment_id], references: [id])
 }
 
 model preference_yappin {
@@ -136,6 +131,19 @@ model users {
   preference_yappin                  preference_yappin?
   reminders                          reminders[]
   yappins                            yappins[]
+  UsageRecords UsageRecord[]
+}
+
+model UsageRecord {
+  id        String   @id @default(uuid())
+  user      users     @relation(fields: [userId], references: [id])
+  userId    Int
+  date      DateTime
+  duration  Int      // Durasi dalam detik
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
 }
 
 
@@ -148,9 +156,9 @@ model yappin_image {
 }
 
 model yappins {
-  id             Int            @id @default(autoincrement())
+  id             Int             @id @default(autoincrement())
   caption        String
-  total_likes    Int?           @default(0)
+  total_likes    Int?            @default(0)
   created_at     DateTime
   tag_one_id     Int?
   tag_two_id     Int?
@@ -161,13 +169,24 @@ model yappins {
   tag_one_name   String?
   tag_three_name String?
   tag_two_name   String?
-  is_public      Boolean        @default(false)
-  total_comments Int?
+  is_public      Boolean         @default(false)
+  total_comments Int? @default(0)
   location       String?
+  YappinComment  YappinComment[]
   YappinLike     YappinLike[]
-  YappinComment     YappinComment[]
   yappin_image   yappin_image[]
-  users          users          @relation(fields: [user_id], references: [id])
+  users          users           @relation(fields: [user_id], references: [id])
+}
+
+model sqlx_migrations {
+  version        BigInt   @id
+  description    String
+  installed_on   DateTime @default(now()) @db.Timestamptz(6)
+  success        Boolean
+  checksum       Bytes
+  execution_time BigInt
+
+  @@map("_sqlx_migrations")
 }
 
 enum EXTENSION {

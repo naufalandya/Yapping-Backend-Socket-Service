@@ -7,6 +7,7 @@ const verifyToken = (req, res, next) => {
     const { authorization } = req.headers;
 
     if (!authorization || !authorization.startsWith('Bearer ')) {
+
         return res.status(401).json({
             status: false,
             message: 'Token tidak disediakan!',
@@ -26,7 +27,7 @@ const verifyToken = (req, res, next) => {
             });
         }
 
-        console.log(decoded)
+        console.log("kesini")
 
         req.token = token;
         req.user = decoded;
@@ -34,4 +35,34 @@ const verifyToken = (req, res, next) => {
     });
 };
 
-module.exports = { verifyToken }
+const verifyTokenParameter = (req, res, next) => {
+    const token = req.query.token;
+
+    if (!token) {
+        console.log("gagal")
+        return res.status(401).json({
+            status: false,
+            message: 'Token tidak disediakan!',
+            data: null,
+        });
+    }
+
+    jwt.verify(token, SECRET_KEY, { algorithms: ['HS512'] }, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({
+                status: false,
+                message: 'Gagal mengautentikasi token',
+                data: null,
+            });
+        }
+
+        console.log("berhasil")
+        // If token is valid, attach decoded user information
+        req.token = token;
+        req.user = decoded;
+        next(); // Proceed to the next middleware/route handler
+    });
+};
+
+
+module.exports = { verifyToken, verifyTokenParameter }

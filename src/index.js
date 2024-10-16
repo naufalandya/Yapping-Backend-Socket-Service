@@ -9,7 +9,8 @@ const cors = require("cors");
 const { handleError } = require("./middlewares/error.middleware");
 const v1 = require("./api/v1.api");
 const { handleYappinStats } = require("./controllers/asistant.controller");
-const { verifyToken } = require("./middlewares/auth.middleware");
+const { verifyToken, verifyTokenParameter } = require("./middlewares/auth.middleware");
+const prisma = require("./libs/prisma.lib");
 
 require("dotenv").config();
 
@@ -41,6 +42,45 @@ const app = express()
   .use(bodyparser.urlencoded({ extended: true }))
   .use("/api", v1)
   .get("/chat",verifyToken, handleYappinStats)
+  .post('/usage', verifyTokenParameter, async (req, res) => {
+    const duration = Number(req.query.duration);
+    const userId = Number(req.user.id);
+
+    console.log(duration)
+    
+    if (!duration || typeof duration !== 'number') {
+      console.log(duration)
+      return res.status(400).json({ message: 'Duration must be number' });
+    }
+  
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Mulai hari ini  
+    try {
+      const usageRecord = await prisma.usageRecord.upsert({
+        where: {
+          userId_date: {
+            userId: userId,
+            date: today,
+          },
+        },
+        update: {
+          duration: {
+            increment: duration,
+          },
+        },
+        create: {
+          userId: userId,
+          date: today,
+          duration: duration,
+        },
+      });
+  
+      res.status(200).json({ message: 'success', usageRecord });
+    } catch (error) {
+      console.error('Error mencatat penggunaan:', error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  })
   //500
   .use((err, req, res, next) => {
     handleError(err, res)

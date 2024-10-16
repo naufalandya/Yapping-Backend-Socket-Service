@@ -20,11 +20,11 @@ const likeController = async (req, res) => {
         const existingLike = await prisma.yappinLike.findFirst({
             where: {
                 user_id: user_id,
-                yappin_id: yappin_id
+                yappin_id: Number(yappin_id)
             }
         });
 
-        const yappin = await prisma.yappins.findUnique({ where: { id: yappin_id } });
+        const yappin = await prisma.yappins.findUnique({ where: { id: Number(yappin_id) } });
 
         const io = req.app.get('io');
 
@@ -45,7 +45,7 @@ const likeController = async (req, res) => {
                 const newLike = await prisma.yappinLike.create({
                     data: {
                         user_id: user_id,
-                        yappin_id: yappin_id
+                        yappin_id: Number(yappin_id)
                     }
                 });
 
@@ -74,7 +74,7 @@ const likeController = async (req, res) => {
 
                 // Update total_likes di yappins
                 await prisma.yappins.update({
-                    where: { id: yappin_id },
+                    where: { id: Number(yappin_id) },
                     data: {
                         total_likes: {
                             increment: 1
@@ -119,7 +119,7 @@ const likeController = async (req, res) => {
 
                 // Update total_likes di yappins
                 await prisma.yappins.update({
-                    where: { id: yappin_id },
+                    where: { id: Number(yappin_id) },
                     data: {
                         total_likes: {
                             decrement: 1

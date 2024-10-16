@@ -5,15 +5,18 @@ const { ErrorWithStatusCode } = require("../middlewares/error.middleware");
 
 const getCommentsController = async (req, res) => {
     try {
-        const { yappin_id } = req.params;
+        const { id } = req.params;
 
-        if (!yappin_id) {
+
+        if (!id) {
             return res.status(400).json({
                 status: false,
                 message: 'yappin_id is required!',
                 data: null
             });
         }
+
+        const yappin_id = id
 
         // Cek apakah yappin dengan ID yang diberikan ada
         const yappin = await prisma.yappins.findUnique({
@@ -74,7 +77,7 @@ const commentController = async (req, res) => {
             });
         }
 
-        const yappin = await prisma.yappins.findUnique({ where: { id: yappin_id } });
+        const yappin = await prisma.yappins.findUnique({ where: { id: Number(yappin_id) } });
 
         if (!yappin) {
             throw new ErrorWithStatusCode('Yappin not found', 404);
@@ -88,43 +91,57 @@ const commentController = async (req, res) => {
 
         const io = req.app.get('io'); 
 
-        await prisma.$transaction(async (prisma) => {
-            // Buat entri YappinComment
-            const newComment = await prisma.yappinComment.create({
+        const newComment = await prisma.yappinComment.create({
+            data: {
+                user_id: user_id,
+                yappin_id: Number(yappin_id),
+                content: content,
+                created_at: new Date()
+            },
+            include: {
+                users: { // Menyertakan data pengguna
+                    select: {
+                        username: true,
+                        avatar_link: true // Tambahkan field lain jika diperlukan
+                    }
+                }
+            }
+        });
+
+        const message = `just commented on your yappin!`;
+
+        if (user_id !== yappin.user_id) {
+            await prisma.comment_notifications.create({
                 data: {
-                    user_id: user_id,
-                    yappin_id: yappin_id,
-                    content: content,
-                    created_at: new Date()
+                    user_id: yappin.user_id, 
+                    detail: message,
+                    created_at: new Date(),
+                    yappin_comment_id: newComment.id, 
+                    by_id: user_id 
                 }
             });
 
-            const message = `just commented on your yappin!`;
-
-            if (user_id !== yappin.user_id) {
-                await prisma.comment_notifications.create({
-                    data: {
-                        user_id: yappin.user_id, 
-                        detail: message,
-                        created_at: new Date(),
-                        yappin_comment_id: newComment.id, 
-                        by_id: user_id 
-                    }
-                });
-
-                io.emit(`user-${yappin.user_id}`, { 
-                    username: user.username, 
-                    message: message,
-                    created_at: new Date(),
-                    redirect: `/${yappin_id}` 
-                });
-            }
-
-            return res.status(201).json({
-                status: true,
-                message: 'Comment added successfully!',
-                data: newComment
+            io.emit(`user-${yappin.user_id}`, { 
+                username: user.username, 
+                message: message,
+                created_at: new Date(),
+                redirect: `/${yappin_id}` 
             });
+        }
+
+        await prisma.yappins.update({
+            where: { id: Number(yappin_id) },
+            data: {
+                total_comments: {
+                    increment: 1
+                }
+            }
+        });
+
+        return res.status(201).json({
+            status: true,
+            message: 'Comment added successfully!',
+            data: newComment
         });
 
     } catch (err) {
@@ -136,6 +153,7 @@ const commentController = async (req, res) => {
         });
     }
 };
+
 
 const deleteCommentController = async (req, res) => {
     try {
