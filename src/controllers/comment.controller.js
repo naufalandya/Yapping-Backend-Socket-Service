@@ -65,8 +65,11 @@ const getCommentsController = async (req, res) => {
 };
 
 const commentController = async (req, res) => {
+
+    const the_id = Number(req.user.id);  
+    const { yappin_id, content } = req.body;
+
     try {
-        const { yappin_id, content } = req.body;
         const user_id = Number(req.user.id);  
 
         if (!yappin_id || !content) {
@@ -122,12 +125,15 @@ const commentController = async (req, res) => {
             });
 
             io.emit(`user-${yappin.user_id}`, { 
+                avatar_link : user.avatar_link,
                 username: user.username, 
                 message: message,
                 created_at: new Date(),
-                redirect: `/${yappin_id}` 
+                redirect: `/yappin/${yappin_id}` 
             });
         }
+
+        await prisma.users.fin
 
         await prisma.yappins.update({
             where: { id: Number(yappin_id) },
@@ -151,6 +157,44 @@ const commentController = async (req, res) => {
             message: 'Internal Server Error',
             data: null
         });
+
+    } finally {
+        const preference = await prisma.yappins.findUnique({
+            where: {
+                id: Number(yappin_id),
+            }
+        });
+        
+        const tag_one = preference.tag_one_name;
+        
+        let user_tags = [
+            req.user.preference_one,
+            req.user.preference_two,
+            req.user.preference_three,
+            req.user.preference_four
+        ];
+        
+        let matchedTagIndex = user_tags.findIndex(tag => tag === tag_one);
+        
+        if (matchedTagIndex !== -1) {
+            let totalEngageField = `total_engage_${['one', 'two', 'three', 'four'][matchedTagIndex]}`;
+        
+            await prisma.preference_yappin.update({
+                where: {
+                    user_id: Number(the_id),
+                },
+                data: {
+                    [totalEngageField]: { // Field dinamis
+                        increment: 1
+                    }
+                }
+            });
+        
+            console.log(`Updated ${totalEngageField} with increment`);
+        } else {
+            console.log("No matching tag found between preference.tag_one_name and user_tags.");
+        }
+        
     }
 };
 

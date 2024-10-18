@@ -3,9 +3,10 @@
 const prisma = require("../libs/prisma.lib");
 const { ErrorWithStatusCode } = require("../middlewares/error.middleware");
 const likeController = async (req, res) => {
+    const { yappin_id } = req.body;
+    const user_id = Number(req.user.id); 
     try {
-        const { yappin_id } = req.body;
-        const user_id = Number(req.user.id); 
+
 
         if (!yappin_id) {
             return res.status(400).json({
@@ -142,8 +143,44 @@ const likeController = async (req, res) => {
             message: 'Internal Server Error',
             data: null
         });
-    } 
-};
+    } finally {
+        const preference = await prisma.yappins.findUnique({
+            where: {
+                id: Number(yappin_id),
+            }
+        });
+        
+        const tag_one = preference.tag_one_name;
+        
+        let user_tags = [
+            req.user.preference_one,
+            req.user.preference_two,
+            req.user.preference_three,
+            req.user.preference_four
+        ];
+        
+        let matchedTagIndex = user_tags.findIndex(tag => tag === tag_one);
+        
+        if (matchedTagIndex !== -1) {
+            let totalEngageField = `total_engage_${['one', 'two', 'three', 'four'][matchedTagIndex]}`;
+        
+            await prisma.preference_yappin.update({
+                where: {
+                    user_id: Number(user_id),
+                },
+                data: {
+                    [totalEngageField]: { // Field dinamis
+                        increment: 1
+                    }
+                }
+            });
+        
+            console.log(`Updated ${totalEngageField} with increment`);
+        } else {
+            console.log("No matching tag found between preference.tag_one_name and user_tags.");
+        }
+    }
+}
 
 module.exports = {
     likeController

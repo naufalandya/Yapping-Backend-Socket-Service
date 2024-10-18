@@ -1,5 +1,6 @@
 "use strict";
 
+const { subDays, startOfDay, endOfDay } = require('date-fns');
 
 const express = require("express");
 const bodyparser = require("body-parser");
@@ -16,10 +17,11 @@ require("dotenv").config();
 
 var corsOptions = {
   origin: [
+    "http://localhost:5174/",
     "http://alobro.my.id",
-    "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:3500",
-    "https://bw2nj1xt-5173.asse.devtunnels.ms",
+    "https://bw2nj1xt-5174.asse.devtunnels.ms",
     "https://bw2nj1xt-3500.asse.devtunnels.ms"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -47,7 +49,7 @@ const app = express()
     const userId = Number(req.user.id);
 
     console.log(duration)
-    
+
     if (!duration || typeof duration !== 'number') {
       console.log(duration)
       return res.status(400).json({ message: 'Duration must be number' });
@@ -81,7 +83,59 @@ const app = express()
       res.status(500).json({ message: 'Internal Server Error' });
     }
   })
-  //500
+  .get("/time-statistic", verifyToken, async(req, res) => {
+    try {
+      const userId = Number(req.user.id);
+  
+      const weeklyUsage = [];
+      let totalDurationInSeconds = 0;
+  
+      for (let i = 0; i < 8; i++) {
+        const currentDate = subDays(new Date(), i);
+        const startOfDayTime = startOfDay(currentDate);
+        const endOfDayTime = endOfDay(currentDate);
+  
+        const usageRecord = await prisma.usageRecord.findMany({
+          where: {
+            userId: userId,
+            date: {
+              gte: startOfDayTime,
+              lte: endOfDayTime,
+            },
+          },
+        });
+  
+        const totalDurationForDay = usageRecord.reduce((total, record) => {
+          return total + record.duration;
+        }, 0);
+  
+        weeklyUsage.push({
+          day: i === 0 ? 'Now' : i === 1 ? 'D-1' : `D-${i}`,
+          durationInSeconds: totalDurationForDay,
+        });
+  
+        totalDurationInSeconds += totalDurationForDay;
+      }
+  
+      const totalHoursInWeek = (totalDurationInSeconds / 3600).toFixed(2);
+  
+      return res.status(200).json({
+        status: 'success',
+        message: 'Weekly usage retrieved successfully',
+        data: {
+          weekly: weeklyUsage,
+          total_hours_in_a_week: totalHoursInWeek,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        status: 'error',
+        message: 'An error occurred while fetching usage data',
+      });
+    }
+  
+  })
   .use((err, req, res, next) => {
     handleError(err, res)
   })
