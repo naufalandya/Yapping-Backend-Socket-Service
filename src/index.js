@@ -18,6 +18,8 @@ require("dotenv").config();
 var corsOptions = {
   origin: [
     "http://localhost:5174/",
+    "https://92345mxk-4173.asse.devtunnels.ms",
+    "https://92345mxk-4173.asse.devtunnels.ms/",
     "http://alobro.my.id",
     "http://localhost:5174",
     "http://localhost:3500",

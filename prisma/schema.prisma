@@ -107,45 +107,44 @@ model tags {
 }
 
 model users {
-  id                                 Int                @id @default(autoincrement())
-  name                               String?            @db.VarChar(100)
-  username                           String             @unique @db.VarChar(50)
-  email                              String             @unique @db.VarChar(50)
-  password                           String             @db.VarChar(120)
-  country                            String?            @db.VarChar(50)
-  city                               String?            @db.VarChar(50)
-  bio                                String?            @db.VarChar(255)
+  id                                 Int                     @id @default(autoincrement())
+  name                               String?                 @db.VarChar(100)
+  username                           String                  @unique @db.VarChar(50)
+  email                              String                  @unique @db.VarChar(50)
+  password                           String                  @db.VarChar(120)
+  country                            String?                 @db.VarChar(50)
+  city                               String?                 @db.VarChar(50)
+  bio                                String?                 @db.VarChar(255)
   avatar_link                        String?
   googleId                           String?
-  created_at                         DateTime           @default(now())
+  created_at                         DateTime                @default(now())
   updated_at                         DateTime
-  role                               ROLE               @default(USER)
+  role                               ROLE                    @default(USER)
+  UsageRecords                       UsageRecord[]
+  YappinComment                      YappinComment[]
   YappinLike                         YappinLike[]
-  YappinComment                       YappinComment[]
-  follows_follows_followerIdTousers  follows[]          @relation("follows_followerIdTousers")
-  follows_follows_followingIdTousers follows[]          @relation("follows_followingIdTousers")
-  like_notifications                 like_notifications[]
-  by_notifications                   like_notifications[] @relation("by_user")
-  comment_notifications              comment_notifications[]
   by_notifications_comment           comment_notifications[] @relation("by_user_comment")
+  comment_notifications              comment_notifications[]
+  follows_follows_followerIdTousers  follows[]               @relation("follows_followerIdTousers")
+  follows_follows_followingIdTousers follows[]               @relation("follows_followingIdTousers")
+  by_notifications                   like_notifications[]    @relation("by_user")
+  like_notifications                 like_notifications[]
   preference_yappin                  preference_yappin?
   reminders                          reminders[]
   yappins                            yappins[]
-  UsageRecords UsageRecord[]
 }
 
 model UsageRecord {
   id        String   @id @default(uuid())
-  user      users     @relation(fields: [userId], references: [id])
   userId    Int
   date      DateTime
-  duration  Int      // Durasi dalam detik
+  duration  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      users    @relation(fields: [userId], references: [id])
 
   @@unique([userId, date])
 }
-
 
 model yappin_image {
   id         Int       @id @default(autoincrement())
@@ -170,7 +169,7 @@ model yappins {
   tag_three_name String?
   tag_two_name   String?
   is_public      Boolean         @default(false)
-  total_comments Int? @default(0)
+  total_comments Int?            @default(0)
   location       String?
   YappinComment  YappinComment[]
   YappinLike     YappinLike[]
@@ -187,6 +186,28 @@ model sqlx_migrations {
   execution_time BigInt
 
   @@map("_sqlx_migrations")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model biology_facts {
+  id         BigInt   @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  fact       String?
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model motivational_quotes {
+  id         BigInt   @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  quotes     String?
+  author     String?
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model physic_facts {
+  id         BigInt   @id(map: "physic_fact_pkey") @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  fact       String?
 }
 
 enum EXTENSION {
