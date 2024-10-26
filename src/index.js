@@ -1,6 +1,7 @@
 "use strict";
 
 const { subDays, startOfDay, endOfDay } = require('date-fns');
+const dayjs = require('dayjs')
 
 const express = require("express");
 const bodyparser = require("body-parser");
@@ -12,19 +13,24 @@ const v1 = require("./api/v1.api");
 const { handleYappinStats } = require("./controllers/asistant.controller");
 const { verifyToken, verifyTokenParameter } = require("./middlewares/auth.middleware");
 const prisma = require("./libs/prisma.lib");
+const { getProductivitySummary } = require('./utils');
 
 require("dotenv").config();
 
 var corsOptions = {
   origin: [
     "http://localhost:5174/",
+    "http://103.196.155.16:4173",
+    "http://103.196.155.16:4173/",
     "https://92345mxk-4173.asse.devtunnels.ms",
     "https://92345mxk-4173.asse.devtunnels.ms/",
     "http://alobro.my.id",
     "http://localhost:5174",
+    'http://localhost:4173', 'http://localhost:4173/',
     "http://localhost:3500",
     "https://bw2nj1xt-5174.asse.devtunnels.ms",
-    "https://bw2nj1xt-3500.asse.devtunnels.ms"
+    "https://bw2nj1xt-3500.asse.devtunnels.ms",
+    "http://192.168.0.102:5174/", "http://192.168.0.102:5174"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   optionsSuccessStatus: 200,
@@ -141,7 +147,98 @@ const app = express()
   .use((err, req, res, next) => {
     handleError(err, res)
   })
+  .get("/usage/today", verifyToken, async(req, res)=>{
+    try {
+      const userId = Number(req.user.id);
+      
+      const startOfDay = dayjs().startOf('day').toDate();
+      const endOfDay = dayjs().endOf('day').toDate();
 
+      // Mengambil durasi penggunaan total hari ini dari database
+      const usageRecords = await prisma.usageRecord.findMany({
+          where: {
+              userId: userId,
+              date: {
+                  gte: startOfDay,
+                  lte: endOfDay
+              }
+          }
+      });
+
+      // Menghitung total durasi (dalam detik) untuk semua record hari ini
+      const totalDuration = usageRecords.reduce((total, record) => total + record.duration, 0);
+
+      const summary = getProductivitySummary(totalDuration);
+
+      return res.json({ duration: totalDuration, summary : summary });
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to fetch usage data" });
+  }
+  })
+
+  .get("/motivation", verifyToken, async(req, res)=>{
+    try {
+      
+      const randomQuote = await prisma.motivational_quotes.findFirst({
+        orderBy: {
+          id: 'desc'
+        },
+        skip: Math.floor(Math.random() * await prisma.motivational_quotes.count())
+      });
+      
+
+      return res.json({ quote : randomQuote.quotes, author : randomQuote.author});
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to fetch usage data" });
+  }
+  })
+  .get("/fact", verifyToken, async(req, res)=>{
+    try {
+      
+        const tables = ['physic_facts', 'biology_facts'];
+        
+        const randomTable = tables[Math.floor(Math.random() * tables.length)];
+
+        const randomFact = await prisma[randomTable].findFirst({
+            orderBy: {
+                id: 'desc' 
+            },
+            skip: Math.floor(Math.random() * await prisma[randomTable].count()) 
+        });
+
+        // Pastikan fakta ditemukan sebelum mengembalikan response
+        if (!randomFact) {
+            return res.status(404).json({ error: 'No facts found in the selected table.' });
+        }
+
+        return res.json({ fact: randomFact.fact });
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to fetch usage data" });
+  }
+  })
+  .get('/tips/random', verifyToken, async (req, res) => {
+    try {
+      const count = await prisma.tips.count();
+      if (count === 0) {
+        return res.status(404).json({ message: 'No tips available.' });
+      }
+  
+      const randomtips = await prisma.tips.findFirst({
+        orderBy: {
+          id: 'desc'
+        },
+        skip: Math.floor(Math.random() * await prisma.tips.count())
+      });
+  
+      res.json({ tips : randomtips.tips });
+    } catch (error) {
+      console.error('Error fetching random tip:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  })
   //404
   .use((req, res, next) => {
     res.status(404).json({
