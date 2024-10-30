@@ -92,6 +92,26 @@ const commentController = async (req, res) => {
             throw new ErrorWithStatusCode('User not found', 404);
         }
 
+
+        const response = await fetch('http://localhost:5000/check-text', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                text: content || '',
+            }),
+        });
+        
+        if (!response.ok) {
+            return res.status(400).json({
+                status: false,
+                message: 'Your words contains negativity, bad word, or profanity !',
+                data: null
+            });
+        }
+        
+
         const io = req.app.get('io'); 
 
         const newComment = await prisma.yappinComment.create({
@@ -144,21 +164,7 @@ const commentController = async (req, res) => {
             }
         });
 
-        return res.status(201).json({
-            status: true,
-            message: 'Comment added successfully!',
-            data: newComment
-        });
 
-    } catch (err) {
-        console.error('Error in commentController:', err);
-        return res.status(500).json({
-            status: false,
-            message: 'Internal Server Error',
-            data: null
-        });
-
-    } finally {
         const preference = await prisma.yappins.findUnique({
             where: {
                 id: Number(yappin_id),
@@ -194,8 +200,22 @@ const commentController = async (req, res) => {
         } else {
             console.log("No matching tag found between preference.tag_one_name and user_tags.");
         }
-        
-    }
+
+        return res.status(201).json({
+            status: true,
+            message: 'Comment added successfully!',
+            data: newComment
+        });
+
+    } catch (err) {
+        console.error('Error in commentController:', err);
+        return res.status(500).json({
+            status: false,
+            message: 'Internal Server Error',
+            data: null
+        });
+
+    } 
 };
 
 
