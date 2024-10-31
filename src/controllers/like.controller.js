@@ -60,7 +60,8 @@ const likeController = async (req, res) => {
                             detail: message,
                             created_at: new Date(),
                             yappin_like_id: newLike.id, // Gunakan ID dari YappinLike
-                            by_id : user_id
+                            by_id : user_id,
+                            redirect : Number(yappin_id)
                         }
                     });
 
@@ -69,7 +70,7 @@ const likeController = async (req, res) => {
                         username: user.username, 
                         message: message,
                         created_at : new Date(), 
-                        redirect: `/${yappin_id}` 
+                        redirect: `${yappin_id}` 
                     });
                                     }
 

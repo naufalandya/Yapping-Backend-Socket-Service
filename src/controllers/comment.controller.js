@@ -140,7 +140,8 @@ const commentController = async (req, res) => {
                     detail: message,
                     created_at: new Date(),
                     yappin_comment_id: newComment.id, 
-                    by_id: user_id 
+                    by_id: user_id,
+                    redirect : Number(yappin_id)
                 }
             });
 
@@ -149,25 +150,16 @@ const commentController = async (req, res) => {
                 username: user.username, 
                 message: message,
                 created_at: new Date(),
-                redirect: `/yappin/${yappin_id}` 
+                redirect: `${yappin_id}` 
             });
         }
 
-        await prisma.users.fin
-
-        await prisma.yappins.update({
+        const preference = await prisma.yappins.update({
             where: { id: Number(yappin_id) },
             data: {
                 total_comments: {
                     increment: 1
                 }
-            }
-        });
-
-
-        const preference = await prisma.yappins.findUnique({
-            where: {
-                id: Number(yappin_id),
             }
         });
         
