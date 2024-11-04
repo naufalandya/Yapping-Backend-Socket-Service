@@ -141,7 +141,7 @@ const commentController = async (req, res) => {
                     created_at: new Date(),
                     yappin_comment_id: newComment.id, 
                     by_id: user_id,
-                    redirect : Number(yappin_id)
+                    redirect : String(yappin_id)
                 }
             });
 
